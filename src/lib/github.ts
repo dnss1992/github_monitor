@@ -1,4 +1,5 @@
-import type { RepoData, Fork, Committer } from '@/lib/types';
+import 'server-only';
+import type { RepoData, Fork, Committer, RepoDetails, ContributorStat } from '@/lib/types';
 
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_ACCESS_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
@@ -37,8 +38,18 @@ const githubFetch = async (endpoint: string, token?: string | null): Promise<{ d
             const resetTime = rateLimitReset ? new Date(Number(rateLimitReset) * 1000).toLocaleTimeString() : 'unknown';
             throw new Error(`GitHub API rate limit exceeded. Please try again after ${resetTime}. Or provide an access token.`);
         }
+        if (response.status === 404) {
+            return { data: [], headers: response.headers };
+        }
         throw new Error(`Failed to fetch from GitHub: ${response.statusText} - ${errorData.message || 'Unknown error'}`);
     }
+    
+    if (response.status === 202) { // Accepted, data is being processed
+        // Wait and retry
+        await new Promise(res => setTimeout(res, 2000));
+        return githubFetch(endpoint, token);
+    }
+    
     const data = await response.json();
     return { data, headers: response.headers };
 };
@@ -68,7 +79,11 @@ const fetchAllPages = async (url: string, token?: string | null): Promise<any[]>
     while (nextUrl) {
         const endpoint = nextUrl.replace(GITHUB_API_URL, '');
         const { data, headers } = await githubFetch(endpoint, token);
-        results = results.concat(data);
+        if(Array.isArray(data)) {
+            results = results.concat(data);
+        } else if (data) {
+            results.push(data)
+        }
 
         const links = parseLinkHeader(headers.get('Link'));
         nextUrl = links.next || null;
@@ -91,12 +106,10 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
     const { data: repoDetails } = await githubFetch(`/repos/${owner}/${repoName}`, token);
     const forksCount = repoDetails.forks_count;
 
-    // Fetch all forks using pagination
     const forksData: any[] = await fetchAllPages(`/repos/${owner}/${repoName}/forks?per_page=100&sort=stargazers`, token);
 
     const forks: Fork[] = await Promise.all(forksData.map(async (forkData: any): Promise<Fork> => {
         try {
-            // First, try to get commits ahead of parent
             const { data: compareData } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/compare/${repoDetails.default_branch}...${forkData.default_branch}`, token);
             return {
                 id: forkData.id,
@@ -108,11 +121,9 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
         } catch (error) {
             console.warn(`Could not compare fork ${forkData.full_name}. Falling back to total commit count.`);
             try {
-                // Fallback: get total commits on the fork's default branch
                 const { data: forkRepoDetails } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
-                const { data: commitsData, headers } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
+                const { headers } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
                 
-                // The total commit count is in the Link header for paginated results.
                 const linkHeader = headers.get('Link');
                 if (linkHeader) {
                     const links = parseLinkHeader(linkHeader);
@@ -130,9 +141,6 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
                         }
                     }
                 }
-                 // If there's no Link header, it means there's only one page of commits.
-                 // The length of the commitsData array is the count. But with per_page=1 it would be just 1.
-                 // Let's try to get a better count. If there are no commits, this will be an empty array.
                  const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}`, token);
 
                  return {
@@ -157,14 +165,13 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
     
     forks.sort((a, b) => b.commitCount - a.commitCount);
 
-    // Fetch recent committers (contributors)
     const { data: contributorsData } = await githubFetch(`/repos/${owner}/${repoName}/contributors?per_page=10`, token);
     
-    const recentCommitters: Committer[] = contributorsData.map((contributor: any) => ({
+    const recentCommitters: Committer[] = Array.isArray(contributorsData) ? contributorsData.map((contributor: any) => ({
         name: contributor.login,
         avatarUrl: contributor.avatar_url,
         commits: contributor.contributions,
-    }));
+    })) : [];
     
     recentCommitters.sort((a, b) => b.commits - a.commits);
 
@@ -174,3 +181,33 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
         recentCommitters
     };
 };
+
+export const getRepoDetails = async(owner: string, repo: string, token?: string | null): Promise<RepoDetails> => {
+    // Get contributor stats. This includes additions, deletions, and commit counts.
+    const { data: contributorStats } = await githubFetch(`/repos/${owner}/${repo}/stats/contributors`, token);
+    
+    const contributors: ContributorStat[] = Array.isArray(contributorStats) ? contributorStats : [];
+
+    let totalCommits = 0;
+    let linesAdded = 0;
+    let linesDeleted = 0;
+    contributors.forEach(stat => {
+        totalCommits += stat.total;
+        stat.weeks.forEach(week => {
+            linesAdded += week.a;
+            linesDeleted += week.d;
+        });
+    });
+
+    // Get commits in the last 48 hours
+    const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const { data: recentCommits } = await githubFetch(`/repos/${owner}/${repo}/commits?since=${since}`, token);
+
+    return {
+        totalCommits,
+        linesAdded,
+        linesDeleted,
+        commitsInLast48Hours: Array.isArray(recentCommits) ? recentCommits.length : 0,
+        contributors
+    }
+}

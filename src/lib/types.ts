@@ -17,3 +17,20 @@ export interface RepoData {
   forks: Fork[];
   recentCommitters: Committer[];
 }
+
+export interface ContributorStat {
+  author: {
+    login: string;
+    avatar_url: string;
+  };
+  total: number;
+  weeks: { w: number; a: number; d: number; c: number }[];
+}
+
+export interface RepoDetails {
+  totalCommits: number;
+  linesAdded: number;
+  linesDeleted: number;
+  commitsInLast48Hours: number;
+  contributors: ContributorStat[];
+}

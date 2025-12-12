@@ -9,13 +9,15 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowUpRight, GitCommitHorizontal, Search } from "lucide-react"
+import { GitCommitHorizontal, Search, ChevronRight } from "lucide-react"
 import type { Fork } from "@/lib/types"
 import Link from "next/link"
 import { Card } from "./ui/card"
+import { useRouter } from "next/navigation"
 
-export function ForksTable({ forks }: { forks: Fork[] }) {
+export function ForksTable({ forks, token }: { forks: Fork[], token?: string | null }) {
     const [filter, setFilter] = useState('');
+    const router = useRouter();
 
     if (forks.length === 0) {
         return (
@@ -27,6 +29,12 @@ export function ForksTable({ forks }: { forks: Fork[] }) {
 
     const filteredForks = forks.filter(fork => fork.fullName.toLowerCase().includes(filter.toLowerCase()));
     
+    const handleRowClick = (fork: Fork) => {
+        const [owner, repo] = fork.fullName.split('/');
+        const queryString = token ? `?token=${encodeURIComponent(token)}` : '';
+        router.push(`/repo/${owner}/${repo}${queryString}`);
+    }
+
     return (
         <Card>
             <div className="p-4 border-b">
@@ -45,13 +53,13 @@ export function ForksTable({ forks }: { forks: Fork[] }) {
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[60%]">Forked Repository</TableHead>
-                        <TableHead className="text-center">Commits</TableHead>
-                        <TableHead className="text-right">Link</TableHead>
+                        <TableHead className="text-center">Commits Ahead</TableHead>
+                        <TableHead className="text-right">Details</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredForks.map((fork) => (
-                        <TableRow key={fork.id}>
+                        <TableRow key={fork.id} onClick={() => handleRowClick(fork)} className="cursor-pointer">
                             <TableCell className="font-medium">{fork.fullName}</TableCell>
                             <TableCell className="text-center">
                                 <div className="flex items-center justify-center gap-2">
@@ -60,12 +68,7 @@ export function ForksTable({ forks }: { forks: Fork[] }) {
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">
-                                <Button asChild variant="ghost" size="icon">
-                                    <Link href={fork.url} target="_blank" rel="noopener noreferrer">
-                                        <ArrowUpRight className="h-4 w-4" />
-                                        <span className="sr-only">Visit repository</span>
-                                    </Link>
-                                </Button>
+                                <ChevronRight className="h-4 w-4 inline-block" />
                             </TableCell>
                         </TableRow>
                     ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeRepo } from '@/app/actions';
 import type { RepoData } from '@/lib/types';
@@ -35,16 +35,8 @@ export default function Home() {
     const [state, setState] = useState<FormState>(initialState);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-
-    useEffect(() => {
-        if (state.error) {
-            toast({
-                variant: "destructive",
-                title: "Analysis Failed",
-                description: state.error,
-            });
-        }
-    }, [state.error, toast]);
+    const [url, setUrl] = useState('');
+    const [token, setToken] = useState('');
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -53,6 +45,13 @@ export default function Home() {
         startTransition(async () => {
             const result = await analyzeRepo(formData);
             setState(result);
+            if (result.error) {
+                 toast({
+                    variant: "destructive",
+                    title: "Analysis Failed",
+                    description: result.error,
+                });
+            }
         });
     };
 
@@ -68,6 +67,8 @@ export default function Home() {
                               <Input
                                   type="url"
                                   name="url"
+                                  value={url}
+                                  onChange={(e) => setUrl(e.target.value)}
                                   placeholder="e.g. https://github.com/facebook/react"
                                   required
                                   className="flex-grow border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -79,6 +80,8 @@ export default function Home() {
                                 <Input
                                     type="password"
                                     name="token"
+                                    value={token}
+                                    onChange={(e) => setToken(e.target.value)}
                                     placeholder="Optional: GitHub Access Token"
                                     className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
                                 />
@@ -102,7 +105,7 @@ export default function Home() {
                 {state.data && (
                     <section className="mt-12 space-y-8 animate-in fade-in-50 duration-500">
                         <RepoStats data={state.data} />
-                        <ForksTable forks={state.data.forks} />
+                        <ForksTable forks={state.data.forks} token={token} />
                     </section>
                 )}
             </div>

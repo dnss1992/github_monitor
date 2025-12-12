@@ -1,5 +1,7 @@
-import { getRepoData } from '@/lib/github';
-import type { RepoData } from '@/lib/types';
+'use server';
+
+import { getRepoData, getRepoDetails } from '@/lib/github';
+import type { RepoData, RepoDetails } from '@/lib/types';
 import { z } from 'zod';
 
 const urlSchema = z.string().url({ message: "Please enter a valid URL." }).refine(
@@ -36,5 +38,14 @@ export async function analyzeRepo(formData: FormData): Promise<FormState> {
         return { data, error: null };
     } catch (error: any) {
         return { data: null, error: error.message || "Failed to fetch repository data." };
+    }
+}
+
+export async function fetchRepoDetails(owner: string, repo: string, token: string | null): Promise<RepoDetails | { error: string }> {
+    try {
+        const data = await getRepoDetails(owner, repo, token);
+        return data;
+    } catch (error: any) {
+        return { error: error.message || "Failed to fetch repository details." };
     }
 }

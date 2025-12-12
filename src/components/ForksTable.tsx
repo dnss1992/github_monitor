@@ -1,3 +1,4 @@
+import { useState } from "react"
 import {
     Table,
     TableBody,
@@ -7,12 +8,15 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ArrowUpRight, GitCommitHorizontal } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ArrowUpRight, GitCommitHorizontal, Search } from "lucide-react"
 import type { Fork } from "@/lib/types"
 import Link from "next/link"
 import { Card } from "./ui/card"
 
 export function ForksTable({ forks }: { forks: Fork[] }) {
+    const [filter, setFilter] = useState('');
+
     if (forks.length === 0) {
         return (
             <Card className="flex items-center justify-center p-8">
@@ -20,9 +24,23 @@ export function ForksTable({ forks }: { forks: Fork[] }) {
             </Card>
         )
     }
+
+    const filteredForks = forks.filter(fork => fork.fullName.toLowerCase().includes(filter.toLowerCase()));
     
     return (
         <Card>
+            <div className="p-4 border-b">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        type="search"
+                        placeholder="Filter by name..."
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="pl-10 w-full"
+                    />
+                </div>
+            </div>
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -32,7 +50,7 @@ export function ForksTable({ forks }: { forks: Fork[] }) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {forks.map((fork) => (
+                    {filteredForks.map((fork) => (
                         <TableRow key={fork.id}>
                             <TableCell className="font-medium">{fork.fullName}</TableCell>
                             <TableCell className="text-center">
@@ -53,6 +71,11 @@ export function ForksTable({ forks }: { forks: Fork[] }) {
                     ))}
                 </TableBody>
             </Table>
+             {filteredForks.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground">
+                    No forks match your filter.
+                </div>
+            )}
         </Card>
     )
 }

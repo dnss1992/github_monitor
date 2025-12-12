@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 export function RepoStats({ data }: { data: RepoData }) {
   return (
-    <div className="grid gap-6 md:grid-cols-3">
+    <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Forks</CardTitle>
@@ -19,7 +19,7 @@ export function RepoStats({ data }: { data: RepoData }) {
       <Card className="md:col-span-2">
         <CardHeader>
           <div className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-sm font-medium">Frequent Committers (Recent)</CardTitle>
+            <CardTitle className="text-sm font-medium">Top Committers (Original Repo)</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </div>
         </CardHeader>
@@ -44,6 +44,6 @@ export function RepoStats({ data }: { data: RepoData }) {
             )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

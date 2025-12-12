@@ -11,6 +11,7 @@ import { Loader2, Search, KeyRound } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { RepoStats } from '@/components/RepoStats';
 import { ForksTable } from '@/components/ForksTable';
+import { TopContributorsDashboard } from '@/components/TopContributorsDashboard';
 
 type FormState = {
     data: RepoData | null,
@@ -127,7 +128,10 @@ export default function Home() {
                 
                 {state.data && (
                     <section className="mt-12 space-y-8 animate-in fade-in-50 duration-500">
-                        <RepoStats data={state.data} />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <RepoStats data={state.data} />
+                            <TopContributorsDashboard forks={state.data.forks} token={token} />
+                        </div>
                         <ForksTable forks={state.data.forks} token={token} />
                     </section>
                 )}

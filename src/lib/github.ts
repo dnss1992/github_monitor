@@ -109,15 +109,10 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
     const forksData: any[] = await fetchAllPages(`/repos/${owner}/${repoName}/forks?per_page=100&sort=stargazers`, token);
 
     const forks: Fork[] = await Promise.all(forksData.map(async (forkData: any): Promise<Fork> => {
+        let commitCount = 0;
         try {
             const { data: compareData } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/compare/${repoDetails.default_branch}...${forkData.default_branch}`, token);
-            return {
-                id: forkData.id,
-                name: forkData.name,
-                fullName: forkData.full_name,
-                url: forkData.html_url,
-                commitCount: compareData.ahead_by,
-            };
+            commitCount = compareData.ahead_by;
         } catch (error) {
             console.warn(`Could not compare fork ${forkData.full_name}. Falling back to total commit count.`);
             try {
@@ -129,38 +124,44 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
                     const links = parseLinkHeader(linkHeader);
                     const lastUrl = links.last;
                     if (lastUrl) {
-                        const match = lastUrl.match(/&page=(\d+)/);
+                        const match = lastUrl.match(/[?&]page=(\d+)/);
                         if (match) {
-                            return {
-                               id: forkData.id,
-                                name: forkData.name,
-                                fullName: forkData.full_name,
-                                url: forkData.html_url,
-                                commitCount: parseInt(match[1], 10),
-                            };
+                            commitCount = parseInt(match[1], 10);
                         }
                     }
                 }
-                 const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}`, token);
-
-                 return {
-                    id: forkData.id,
-                    name: forkData.name,
-                    fullName: forkData.full_name,
-                    url: forkData.html_url,
-                    commitCount: Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0,
-                };
+                if (commitCount === 0) {
+                    const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}`, token);
+                    commitCount = Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0;
+                }
             } catch (fallbackError) {
                  console.error(`Could not fetch commit count for ${forkData.full_name}. Setting commit count to 0.`);
-                 return {
-                    id: forkData.id,
-                    name: forkData.name,
-                    fullName: forkData.full_name,
-                    url: forkData.html_url,
-                    commitCount: 0,
-                };
+                 commitCount = 0;
             }
         }
+        
+        let topContributor: Committer | null = null;
+        try {
+             const { data: contributors } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/contributors?per_page=1`, token);
+             if (Array.isArray(contributors) && contributors.length > 0) {
+                 topContributor = {
+                     name: contributors[0].login,
+                     avatarUrl: contributors[0].avatar_url,
+                     commits: contributors[0].contributions,
+                 };
+             }
+        } catch (error) {
+            console.warn(`Could not fetch contributors for ${forkData.full_name}.`);
+        }
+
+        return {
+            id: forkData.id,
+            name: forkData.name,
+            fullName: forkData.full_name,
+            url: forkData.html_url,
+            commitCount,
+            topContributor,
+        };
     }));
     
     forks.sort((a, b) => b.commitCount - a.commitCount);

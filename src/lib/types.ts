@@ -4,6 +4,7 @@ export interface Fork {
   fullName: string;
   url: string;
   commitCount: number;
+  topContributor: Committer | null;
 }
 
 export interface Committer {

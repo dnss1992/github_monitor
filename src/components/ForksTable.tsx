@@ -1,3 +1,5 @@
+
+'use client';
 import { useState } from "react"
 import {
     Table,
@@ -31,8 +33,13 @@ export function ForksTable({ forks, token }: { forks: Fork[], token?: string | n
     
     const handleRowClick = (fork: Fork) => {
         const [owner, repo] = fork.fullName.split('/');
-        const queryString = token ? `?token=${encodeURIComponent(token)}` : '';
-        router.push(`/repo/${owner}/${repo}${queryString}`);
+        const params = new URLSearchParams();
+        params.set('owner', owner);
+        params.set('repo', repo);
+        if (token) {
+            params.set('token', token);
+        }
+        router.push(`/repo/details?${params.toString()}`);
     }
 
     return (

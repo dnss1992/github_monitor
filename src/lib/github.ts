@@ -111,33 +111,26 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
     const forks: Fork[] = await Promise.all(forksData.map(async (forkData: any): Promise<Fork> => {
         let commitCount = 0;
         try {
-            const { data: compareData } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/compare/${repoDetails.default_branch}...${forkData.default_branch}`, token);
-            commitCount = compareData.ahead_by;
-        } catch (error) {
-            console.warn(`Could not compare fork ${forkData.full_name}. Falling back to total commit count.`);
-            try {
-                const { data: forkRepoDetails } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
-                const { headers } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
-                
-                const linkHeader = headers.get('Link');
-                if (linkHeader) {
-                    const links = parseLinkHeader(linkHeader);
-                    const lastUrl = links.last;
-                    if (lastUrl) {
-                        const match = lastUrl.match(/[?&]page=(\d+)/);
-                        if (match) {
-                            commitCount = parseInt(match[1], 10);
-                        }
+            const { data: forkRepoDetails } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
+            const { headers } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
+            
+            const linkHeader = headers.get('Link');
+            if (linkHeader) {
+                const links = parseLinkHeader(linkHeader);
+                const lastUrl = links.last;
+                if (lastUrl) {
+                    const match = lastUrl.match(/[?&]page=(\d+)/);
+                    if (match) {
+                        commitCount = parseInt(match[1], 10);
                     }
                 }
-                if (commitCount === 0) {
-                    const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}`, token);
-                    commitCount = Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0;
-                }
-            } catch (fallbackError) {
-                 console.error(`Could not fetch commit count for ${forkData.full_name}. Setting commit count to 0.`);
-                 commitCount = 0;
+            } else {
+                 const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=100`, token);
+                 commitCount = Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0;
             }
+        } catch (fallbackError) {
+             console.error(`Could not fetch commit count for ${forkData.full_name}. Setting commit count to 0.`);
+             commitCount = 0;
         }
         
         let topContributor: Committer | null = null;

@@ -60,7 +60,7 @@ export function ForksTable({ forks, token }: { forks: Fork[], token?: string | n
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[60%]">Forked Repository</TableHead>
-                        <TableHead className="text-center">Commits Ahead</TableHead>
+                        <TableHead className="text-center">Total Commits</TableHead>
                         <TableHead className="text-right">Details</TableHead>
                     </TableRow>
                 </TableHeader>

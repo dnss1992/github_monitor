@@ -107,72 +107,15 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
 
     const forksData: any[] = await fetchAllPages(`/repos/${owner}/${repoName}/forks?per_page=100&sort=stargazers`, token);
 
-    const forks: Fork[] = await Promise.all(forksData.map(async (forkData: any): Promise<Fork> => {
-        let commitCount = 0;
-        try {
-            const { data: forkRepoDetails } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
-            const { headers } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
-            
-            const linkHeader = headers.get('Link');
-            if (linkHeader) {
-                const links = parseLinkHeader(linkHeader);
-                const lastUrl = links.last;
-                if (lastUrl) {
-                    const match = lastUrl.match(/[?&]page=(\d+)/);
-                    if (match) {
-                        commitCount = parseInt(match[1], 10);
-                    }
-                }
-            } else {
-                 const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=100`, token);
-                 commitCount = Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0;
-            }
-        } catch (fallbackError) {
-             console.error(`Could not fetch commit count for ${forkData.full_name}. Setting commit count to 0.`);
-             commitCount = 0;
-        }
-        
-        let topContributor: Committer | null = null;
-        try {
-             const { data: contributors } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/contributors?per_page=1`, token);
-             if (Array.isArray(contributors) && contributors.length > 0) {
-                 topContributor = {
-                     name: contributors[0].login,
-                     avatarUrl: contributors[0].avatar_url,
-                     commits: contributors[0].contributions,
-                 };
-             }
-        } catch (error) {
-            console.warn(`Could not fetch contributors for ${forkData.full_name}.`);
-        }
-        
-        let linesAdded = 0;
-        try {
-             const { data: contributorStats } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/stats/contributors`, token);
-             if (Array.isArray(contributorStats)) {
-                linesAdded = contributorStats.reduce((acc, stat) => {
-                    const weeklyAdditions = stat.weeks.reduce((wAcc: number, w: { a: number; }) => wAcc + w.a, 0);
-                    return acc + weeklyAdditions;
-                }, 0);
-             }
-        } catch(e) {
-            console.warn(`Could not fetch contributor stats for ${forkData.full_name}`);
-        }
-
-
+    const forks: Fork[] = forksData.map((forkData: any): Fork => {
         return {
             id: forkData.id,
             name: forkData.name,
             fullName: forkData.full_name,
             url: forkData.html_url,
-            commitCount,
-            topContributor,
-            linesAdded
         };
-    }));
+    });
     
-    forks.sort((a, b) => b.commitCount - a.commitCount);
-
     const { data: contributorsData } = await githubFetch(`/repos/${owner}/${repoName}/contributors?per_page=10`, token);
     
     const recentCommitters: Committer[] = Array.isArray(contributorsData) ? contributorsData.map((contributor: any) => ({
@@ -189,6 +132,66 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
         recentCommitters
     };
 };
+
+export const getForkDetails = async (owner: string, repo: string, token?: string | null): Promise<Partial<Fork>> => {
+    let commitCount = 0;
+    try {
+        const { data: forkRepoDetails } = await githubFetch(`/repos/${owner}/${repo}`, token);
+        const { headers } = await githubFetch(`/repos/${owner}/${repo}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
+        
+        const linkHeader = headers.get('Link');
+        if (linkHeader) {
+            const links = parseLinkHeader(linkHeader);
+            const lastUrl = links.last;
+            if (lastUrl) {
+                const match = lastUrl.match(/[?&]page=(\d+)/);
+                if (match) {
+                    commitCount = parseInt(match[1], 10);
+                }
+            }
+        } else {
+             const { data: allCommitsOnBranch } = await githubFetch(`/repos/${owner}/${repo}/commits?sha=${forkRepoDetails.default_branch}&per_page=100`, token);
+             commitCount = Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0;
+        }
+    } catch (fallbackError) {
+         console.error(`Could not fetch commit count for ${owner}/${repo}. Setting commit count to 0.`);
+         commitCount = 0;
+    }
+    
+    let topContributor: Committer | null = null;
+    try {
+         const { data: contributors } = await githubFetch(`/repos/${owner}/${repo}/contributors?per_page=1`, token);
+         if (Array.isArray(contributors) && contributors.length > 0) {
+             topContributor = {
+                 name: contributors[0].login,
+                 avatarUrl: contributors[0].avatar_url,
+                 commits: contributors[0].contributions,
+             };
+         }
+    } catch (error) {
+        console.warn(`Could not fetch contributors for ${owner}/${repo}.`);
+    }
+    
+    let linesAdded = 0;
+    try {
+         const { data: contributorStats } = await githubFetch(`/repos/${owner}/${repo}/stats/contributors`, token);
+         if (Array.isArray(contributorStats)) {
+            linesAdded = contributorStats.reduce((acc, stat) => {
+                const weeklyAdditions = stat.weeks.reduce((wAcc: number, w: { a: number; }) => wAcc + w.a, 0);
+                return acc + weeklyAdditions;
+            }, 0);
+         }
+    } catch(e) {
+        console.warn(`Could not fetch contributor stats for ${owner}/${repo}`);
+    }
+
+    return {
+        commitCount,
+        topContributor,
+        linesAdded
+    };
+};
+
 
 export const getRepoDetails = async(owner: string, repo: string, token?: string | null): Promise<RepoDetails> => {
     // Get contributor stats. This includes additions, deletions, and commit counts.

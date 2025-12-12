@@ -1,3 +1,4 @@
+
 import type { Fork } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -11,7 +12,9 @@ export function TopContributorsDashboard({ forks, token }: { forks: Fork[], toke
 
     const contributorCommits: { [key: string]: { commits: number, avatarUrl: string, repos: Set<string> } } = {};
 
-    forks.forEach(fork => {
+    const forksWithContributors = forks.filter(f => f.topContributor && f.commitCount);
+
+    forksWithContributors.forEach(fork => {
         if (fork.topContributor) {
             const { name, commits, avatarUrl } = fork.topContributor;
             if (!contributorCommits[name]) {
@@ -26,8 +29,20 @@ export function TopContributorsDashboard({ forks, token }: { forks: Fork[], toke
         .map(([name, data]) => ({ name, ...data }))
         .sort((a, b) => b.commits - a.commits);
 
-    if (sortedContributors.length === 0) {
-        return null;
+    if (forksWithContributors.length === 0) {
+        return (
+             <Card className="md:col-span-3">
+                <CardHeader>
+                    <div className="flex flex-row items-center justify-between space-y-0">
+                        <CardTitle className="text-lg font-semibold">Top Contributors Across Forks</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                     <p className="text-sm text-muted-foreground pt-2">No contributor data available to display.</p>
+                </CardContent>
+            </Card>
+        )
     }
 
     return (
@@ -39,7 +54,7 @@ export function TopContributorsDashboard({ forks, token }: { forks: Fork[], toke
                 </div>
             </CardHeader>
             <CardContent>
-                {sortedContributors.length > 0 ? (
+                
                     <ul className="space-y-3">
                         {sortedContributors.slice(0, 5).map((committer) => (
                             <li key={committer.name} className="flex items-center justify-between text-sm">
@@ -74,9 +89,7 @@ export function TopContributorsDashboard({ forks, token }: { forks: Fork[], toke
                             </li>
                         ))}
                     </ul>
-                ) : (
-                    <p className="text-sm text-muted-foreground pt-2">No contributor data found across forks.</p>
-                )}
+                
             </CardContent>
         </Card>
     );

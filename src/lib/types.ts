@@ -3,9 +3,9 @@ export interface Fork {
   name: string;
   fullName: string;
   url: string;
-  commitCount: number;
-  topContributor: Committer | null;
-  linesAdded: number;
+  commitCount?: number;
+  topContributor?: Committer | null;
+  linesAdded?: number;
 }
 
 export interface Committer {

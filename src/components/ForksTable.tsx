@@ -10,10 +10,11 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { GitCommitHorizontal, Search, ChevronRight } from "lucide-react"
+import { GitCommitHorizontal, Search, ChevronRight, Download } from "lucide-react"
 import type { Fork } from "@/lib/types"
 import { Card } from "./ui/card"
 import { useRouter } from "next/navigation"
+import { Button } from "./ui/button";
 
 export function ForksTable({ forks, token }: { forks: Fork[], token?: string | null }) {
     const [filter, setFilter] = useState('');
@@ -40,10 +41,35 @@ export function ForksTable({ forks, token }: { forks: Fork[], token?: string | n
         router.push(`/repo/details?${params.toString()}`);
     }
 
+    const handleExport = () => {
+        const header = "Repository,Total Commits,Top Contributor,Lines of Code Added\n";
+        const csvRows = filteredForks.map(fork => {
+            const repoName = fork.fullName;
+            const commits = fork.commitCount;
+            const contributor = fork.topContributor?.name || "N/A";
+            const linesAdded = fork.linesAdded;
+            return `${repoName},${commits},${contributor},${linesAdded}`;
+        }).join('\n');
+
+        const csvString = header + csvRows;
+        
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'forks_export.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+
     return (
         <Card>
-            <div className="p-4 border-b">
-                <div className="relative">
+            <div className="p-4 border-b flex items-center gap-4">
+                <div className="relative flex-grow">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
                         type="search"
@@ -53,6 +79,10 @@ export function ForksTable({ forks, token }: { forks: Fork[], token?: string | n
                         className="pl-10 w-full"
                     />
                 </div>
+                <Button variant="outline" onClick={handleExport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export as CSV
+                </Button>
             </div>
             <Table>
                 <TableHeader>

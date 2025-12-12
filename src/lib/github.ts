@@ -145,6 +145,20 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
         } catch (error) {
             console.warn(`Could not fetch contributors for ${forkData.full_name}.`);
         }
+        
+        let linesAdded = 0;
+        try {
+             const { data: contributorStats } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/stats/contributors`, token);
+             if (Array.isArray(contributorStats)) {
+                linesAdded = contributorStats.reduce((acc, stat) => {
+                    const weeklyAdditions = stat.weeks.reduce((wAcc: number, w: { a: number; }) => wAcc + w.a, 0);
+                    return acc + weeklyAdditions;
+                }, 0);
+             }
+        } catch(e) {
+            console.warn(`Could not fetch contributor stats for ${forkData.full_name}`);
+        }
+
 
         return {
             id: forkData.id,
@@ -153,6 +167,7 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
             url: forkData.html_url,
             commitCount,
             topContributor,
+            linesAdded
         };
     }));
     

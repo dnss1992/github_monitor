@@ -5,6 +5,7 @@ export interface Fork {
   url: string;
   commitCount: number;
   topContributor: Committer | null;
+  linesAdded: number;
 }
 
 export interface Committer {

@@ -1,5 +1,3 @@
-"use server";
-
 import { getRepoData } from '@/lib/github';
 import type { RepoData } from '@/lib/types';
 import { z } from 'zod';
@@ -23,7 +21,7 @@ type FormState = {
     error: string | null
 }
 
-export async function analyzeRepo(prevState: FormState, formData: FormData): Promise<FormState> {
+export async function analyzeRepo(formData: FormData): Promise<FormState> {
     const url = formData.get('url') as string;
     const token = formData.get('token') as string | null;
 

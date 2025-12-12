@@ -1,4 +1,4 @@
-import type { RepoData, Fork, Committer, RepoDetails, ContributorStat, StackInfo } from '@/lib/types';
+import type { RepoData, Fork, Committer, RepoDetails, ContributorStat } from '@/lib/types';
 
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_ACCESS_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
@@ -184,28 +184,32 @@ export const getRepoDetails = async(owner: string, repo: string, token?: string 
     let totalCommits = 0;
     let linesAdded = 0;
     let linesDeleted = 0;
+
+    // Aggregate commit activity by week
+    const weeklyCommits: { [week: string]: number } = {};
+
     contributors.forEach(stat => {
         totalCommits += stat.total;
         stat.weeks.forEach(week => {
             linesAdded += week.a;
             linesDeleted += week.d;
+            
+            const weekStart = new Date(week.w * 1000).toISOString().split('T')[0];
+            if (!weeklyCommits[weekStart]) {
+                weeklyCommits[weekStart] = 0;
+            }
+            weeklyCommits[weekStart] += week.c;
         });
     });
+
+    const commitActivity = Object.entries(weeklyCommits)
+        .map(([week, commits]) => ({ week, commits }))
+        .sort((a, b) => new Date(a.week).getTime() - new Date(b.week).getTime());
+
 
     // Get commits in the last 48 hours
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data: recentCommits } = await githubFetch(`/repos/${owner}/${repo}/commits?since=${since}`, token);
-    
-    let stack: StackInfo[] = [];
-    try {
-        const stackResponse = await fetch(`https://stackhound.vercel.app/api/?repo=${owner}/${repo}`);
-        if(stackResponse.ok) {
-            stack = await stackResponse.json();
-        }
-    } catch (error) {
-        console.warn(`Could not fetch stack info for ${owner}/${repo}.`);
-    }
-
 
     return {
         totalCommits,
@@ -213,6 +217,6 @@ export const getRepoDetails = async(owner: string, repo: string, token?: string 
         linesDeleted,
         commitsInLast48Hours: Array.isArray(recentCommits) ? recentCommits.length : 0,
         contributors,
-        stack
+        commitActivity
     }
 }

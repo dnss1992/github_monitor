@@ -11,7 +11,8 @@ import { RepoDetailStats } from '@/components/RepoDetailStats';
 import { ContributorsTable } from '@/components/ContributorsTable';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
-import { TechStack } from '@/components/TechStack';
+import { CommitActivityChart } from '@/components/CommitActivityChart';
+
 
 function RepoDashboardContent() {
     const searchParams = useSearchParams();
@@ -107,7 +108,7 @@ function RepoDashboardContent() {
                                 <ContributorsTable contributors={details.contributors} />
                             </div>
                             <div className="lg:col-span-1">
-                                 <TechStack stack={details.stack} />
+                                <CommitActivityChart commitActivity={details.commitActivity} />
                             </div>
                         </div>
                     </div>

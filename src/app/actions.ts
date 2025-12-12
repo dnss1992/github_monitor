@@ -25,6 +25,7 @@ type FormState = {
 
 export async function analyzeRepo(prevState: FormState, formData: FormData): Promise<FormState> {
     const url = formData.get('url') as string;
+    const token = formData.get('token') as string | null;
 
     const validatedUrl = urlSchema.safeParse(url);
 
@@ -33,7 +34,7 @@ export async function analyzeRepo(prevState: FormState, formData: FormData): Pro
     }
 
     try {
-        const data = await getRepoData(validatedUrl.data);
+        const data = await getRepoData(validatedUrl.data, token);
         return { data, error: null };
     } catch (error: any) {
         return { data: null, error: error.message || "Failed to fetch repository data." };

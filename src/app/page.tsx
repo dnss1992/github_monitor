@@ -7,7 +7,7 @@ import { analyzeRepo } from '@/app/actions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, KeyRound } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { RepoStats } from '@/components/RepoStats';
 import { ForksTable } from '@/components/ForksTable';
@@ -49,15 +49,26 @@ export default function Home() {
 
                 <section className="mt-12 max-w-2xl mx-auto">
                     <form action={formAction}>
-                        <div className="flex flex-col sm:flex-row items-center gap-2 bg-card p-2 rounded-lg border shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
-                            <Input
-                                type="url"
-                                name="url"
-                                placeholder="e.g. https://github.com/facebook/react"
-                                required
-                                className="flex-grow border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                            />
-                            <SubmitButton />
+                        <div className="bg-card p-2 rounded-lg border shadow-sm space-y-2">
+                          <div className="flex flex-col sm:flex-row items-center gap-2 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background rounded-md">
+                              <Input
+                                  type="url"
+                                  name="url"
+                                  placeholder="e.g. https://github.com/facebook/react"
+                                  required
+                                  className="flex-grow border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                              />
+                              <SubmitButton />
+                          </div>
+                          <div className="flex items-center gap-2 border-t pt-2">
+                                <KeyRound className="h-4 w-4 text-muted-foreground ml-2"/>
+                                <Input
+                                    type="password"
+                                    name="token"
+                                    placeholder="Optional: GitHub Access Token"
+                                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                                />
+                            </div>
                         </div>
                     </form>
                 </section>

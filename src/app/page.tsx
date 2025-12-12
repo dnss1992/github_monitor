@@ -12,31 +12,6 @@ import { Header } from '@/components/Header';
 import { RepoStats } from '@/components/RepoStats';
 import { ForksTable } from '@/components/ForksTable';
 
-// Cookie utility functions
-const setCookie = (name: string, value: string, days: number) => {
-    if (typeof document === 'undefined') return;
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";
-};
-
-const getCookie = (name: string): string | null => {
-    if (typeof document === 'undefined') return null;
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-};
-
-
 type FormState = {
     data: RepoData | null,
     error: string | null
@@ -64,8 +39,8 @@ export default function Home() {
     const [token, setToken] = useState('');
     
     useEffect(() => {
-        const savedUrl = getCookie('repoUrl');
-        const savedToken = getCookie('githubToken');
+        const savedUrl = sessionStorage.getItem('repoUrl');
+        const savedToken = sessionStorage.getItem('githubToken');
         if (savedUrl) {
             setUrl(savedUrl);
         }
@@ -77,13 +52,13 @@ export default function Home() {
     const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newUrl = e.target.value;
         setUrl(newUrl);
-        setCookie('repoUrl', newUrl, 30);
+        sessionStorage.setItem('repoUrl', newUrl);
     };
     
     const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newToken = e.target.value;
         setToken(newToken);
-        setCookie('githubToken', newToken, 30);
+        sessionStorage.setItem('githubToken', newToken);
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

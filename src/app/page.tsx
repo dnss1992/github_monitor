@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeRepo } from '@/app/actions';
 import type { RepoData } from '@/lib/types';
@@ -11,6 +11,29 @@ import { Loader2, Search, KeyRound } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { RepoStats } from '@/components/RepoStats';
 import { ForksTable } from '@/components/ForksTable';
+
+// Cookie utility functions
+const setCookie = (name: string, value: string, days: number) => {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+};
+
+const getCookie = (name: string): string | null => {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+};
+
 
 type FormState = {
     data: RepoData | null,
@@ -37,6 +60,29 @@ export default function Home() {
     const { toast } = useToast();
     const [url, setUrl] = useState('');
     const [token, setToken] = useState('');
+    
+    useEffect(() => {
+        const savedUrl = getCookie('repoUrl');
+        const savedToken = getCookie('githubToken');
+        if (savedUrl) {
+            setUrl(savedUrl);
+        }
+        if (savedToken) {
+            setToken(savedToken);
+        }
+    }, []);
+
+    const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newUrl = e.target.value;
+        setUrl(newUrl);
+        setCookie('repoUrl', newUrl, 30);
+    };
+    
+    const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newToken = e.target.value;
+        setToken(newToken);
+        setCookie('githubToken', newToken, 30);
+    };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -68,7 +114,7 @@ export default function Home() {
                                   type="url"
                                   name="url"
                                   value={url}
-                                  onChange={(e) => setUrl(e.target.value)}
+                                  onChange={handleUrlChange}
                                   placeholder="e.g. https://github.com/facebook/react"
                                   required
                                   className="flex-grow border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -81,7 +127,7 @@ export default function Home() {
                                     type="password"
                                     name="token"
                                     value={token}
-                                    onChange={(e) => setToken(e.target.value)}
+                                    onChange={handleTokenChange}
                                     placeholder="Optional: GitHub Access Token"
                                     className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
                                 />

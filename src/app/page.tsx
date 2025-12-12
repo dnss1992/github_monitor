@@ -14,6 +14,7 @@ import { ForksTable } from '@/components/ForksTable';
 
 // Cookie utility functions
 const setCookie = (name: string, value: string, days: number) => {
+    if (typeof document === 'undefined') return;
     let expires = "";
     if (days) {
         const date = new Date();
@@ -24,6 +25,7 @@ const setCookie = (name: string, value: string, days: number) => {
 };
 
 const getCookie = (name: string): string | null => {
+    if (typeof document === 'undefined') return null;
     const nameEQ = name + "=";
     const ca = document.cookie.split(';');
     for (let i = 0; i < ca.length; i++) {

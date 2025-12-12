@@ -9,11 +9,9 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { GitCommitHorizontal, Search, ChevronRight } from "lucide-react"
 import type { Fork } from "@/lib/types"
-import Link from "next/link"
 import { Card } from "./ui/card"
 import { useRouter } from "next/navigation"
 

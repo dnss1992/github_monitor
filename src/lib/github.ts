@@ -3,7 +3,7 @@ import type { RepoData, Fork, Committer } from '@/lib/types';
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_ACCESS_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
 
-const githubFetch = async (endpoint: string, token?: string | null) => {
+const githubFetch = async (endpoint: string, token?: string | null): Promise<{ data: any, headers: Headers }> => {
     const headers: HeadersInit = {
         'Accept': 'application/vnd.github.v3+json',
     };
@@ -39,9 +39,44 @@ const githubFetch = async (endpoint: string, token?: string | null) => {
         }
         throw new Error(`Failed to fetch from GitHub: ${response.statusText} - ${errorData.message || 'Unknown error'}`);
     }
-
-    return response.json();
+    const data = await response.json();
+    return { data, headers: response.headers };
 };
+
+const parseLinkHeader = (header: string | null): { [key: string]: string } => {
+    if (!header) {
+        return {};
+    }
+    const links: { [key: string]: string } = {};
+    const parts = header.split(',');
+    parts.forEach(p => {
+        const section = p.split(';');
+        if (section.length !== 2) {
+            return;
+        }
+        const url = section[0].replace(/<(.*)>/, '$1').trim();
+        const name = section[1].replace(/rel="(.*)"/, '$1').trim();
+        links[name] = url;
+    });
+    return links;
+}
+
+const fetchAllPages = async (url: string, token?: string | null): Promise<any[]> => {
+    let results: any[] = [];
+    let nextUrl: string | null = url;
+
+    while (nextUrl) {
+        const endpoint = nextUrl.replace(GITHUB_API_URL, '');
+        const { data, headers } = await githubFetch(endpoint, token);
+        results = results.concat(data);
+
+        const links = parseLinkHeader(headers.get('Link'));
+        nextUrl = links.next || null;
+    }
+
+    return results;
+}
+
 
 export const getRepoData = async (repoUrl: string, token?: string | null): Promise<RepoData> => {
     let owner, repoName;
@@ -53,16 +88,16 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
         throw new Error("Invalid GitHub repository URL format.");
     }
     
-    const repoDetails = await githubFetch(`/repos/${owner}/${repoName}`, token);
+    const { data: repoDetails } = await githubFetch(`/repos/${owner}/${repoName}`, token);
     const forksCount = repoDetails.forks_count;
 
-    // Fetch forks
-    const forksData: any[] = await githubFetch(`/repos/${owner}/${repoName}/forks?per_page=100&sort=stargazers`, token);
+    // Fetch all forks using pagination
+    const forksData: any[] = await fetchAllPages(`/repos/${owner}/${repoName}/forks?per_page=100&sort=stargazers`, token);
 
-    const forks: Fork[] = await Promise.all(forksData.slice(0, 10).map(async (forkData: any): Promise<Fork> => {
+    const forks: Fork[] = await Promise.all(forksData.map(async (forkData: any): Promise<Fork> => {
         try {
             // First, try to get commits ahead of parent
-            const compareData = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/compare/${repoDetails.default_branch}...${forkData.default_branch}`, token);
+            const { data: compareData } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/compare/${repoDetails.default_branch}...${forkData.default_branch}`, token);
             return {
                 id: forkData.id,
                 name: forkData.name,
@@ -74,28 +109,38 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
             console.warn(`Could not compare fork ${forkData.full_name}. Falling back to total commit count.`);
             try {
                 // Fallback: get total commits on the fork's default branch
-                const forkRepoDetails = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
-                const commitsData = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
-                // The total commit count is in the Link header.
-                const linkHeader = commitsData.headers?.get('Link');
+                const { data: forkRepoDetails } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
+                const { data: commitsData, headers } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
+                
+                // The total commit count is in the Link header for paginated results.
+                const linkHeader = headers.get('Link');
                 if (linkHeader) {
-                    const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
-                    if (match) {
-                        return {
-                           id: forkData.id,
-                            name: forkData.name,
-                            fullName: forkData.full_name,
-                            url: forkData.html_url,
-                            commitCount: parseInt(match[1], 10),
-                        };
+                    const links = parseLinkHeader(linkHeader);
+                    const lastUrl = links.last;
+                    if (lastUrl) {
+                        const match = lastUrl.match(/&page=(\d+)/);
+                        if (match) {
+                            return {
+                               id: forkData.id,
+                                name: forkData.name,
+                                fullName: forkData.full_name,
+                                url: forkData.html_url,
+                                commitCount: parseInt(match[1], 10),
+                            };
+                        }
                     }
                 }
+                 // If there's no Link header, it means there's only one page of commits.
+                 // The length of the commitsData array is the count. But with per_page=1 it would be just 1.
+                 // Let's try to get a better count. If there are no commits, this will be an empty array.
+                 const { data: allCommitsOnBranch } = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}`, token);
+
                  return {
                     id: forkData.id,
                     name: forkData.name,
                     fullName: forkData.full_name,
                     url: forkData.html_url,
-                    commitCount: 1, 
+                    commitCount: Array.isArray(allCommitsOnBranch) ? allCommitsOnBranch.length : 0,
                 };
             } catch (fallbackError) {
                  console.error(`Could not fetch commit count for ${forkData.full_name}. Setting commit count to 0.`);
@@ -113,7 +158,7 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
     forks.sort((a, b) => b.commitCount - a.commitCount);
 
     // Fetch recent committers (contributors)
-    const contributorsData: any[] = await githubFetch(`/repos/${owner}/${repoName}/contributors?per_page=10`, token);
+    const { data: contributorsData } = await githubFetch(`/repos/${owner}/${repoName}/contributors?per_page=10`, token);
     
     const recentCommitters: Committer[] = contributorsData.map((contributor: any) => ({
         name: contributor.login,

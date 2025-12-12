@@ -11,6 +11,7 @@ import { RepoDetailStats } from '@/components/RepoDetailStats';
 import { ContributorsTable } from '@/components/ContributorsTable';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
+import { TechStack } from '@/components/TechStack';
 
 function RepoDashboardContent() {
     const searchParams = useSearchParams();
@@ -101,7 +102,14 @@ function RepoDashboardContent() {
                 {details && !isPending && (
                     <div className="space-y-8 animate-in fade-in-50 duration-500">
                         <RepoDetailStats data={details} />
-                        <ContributorsTable contributors={details.contributors} />
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2">
+                                <ContributorsTable contributors={details.contributors} />
+                            </div>
+                            <div className="lg:col-span-1">
+                                 <TechStack stack={details.stack} />
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

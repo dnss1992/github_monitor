@@ -28,10 +28,18 @@ export interface ContributorStat {
   weeks: { w: number; a: number; d: number; c: number }[];
 }
 
+export interface StackInfo {
+  name: string;
+  category: string;
+  logo: string;
+  url: string;
+}
+
 export interface RepoDetails {
   totalCommits: number;
   linesAdded: number;
   linesDeleted: number;
   commitsInLast48Hours: number;
   contributors: ContributorStat[];
+  stack: StackInfo[];
 }

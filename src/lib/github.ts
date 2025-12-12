@@ -1,4 +1,4 @@
-import type { RepoData, Fork, Committer, RepoDetails, ContributorStat } from '@/lib/types';
+import type { RepoData, Fork, Committer, RepoDetails, ContributorStat, StackInfo } from '@/lib/types';
 
 const GITHUB_API_URL = 'https://api.github.com';
 const GITHUB_ACCESS_TOKEN = process.env.GITHUB_ACCESS_TOKEN;
@@ -195,12 +195,24 @@ export const getRepoDetails = async(owner: string, repo: string, token?: string 
     // Get commits in the last 48 hours
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data: recentCommits } = await githubFetch(`/repos/${owner}/${repo}/commits?since=${since}`, token);
+    
+    let stack: StackInfo[] = [];
+    try {
+        const stackResponse = await fetch(`https://stackhound.vercel.app/api/?repo=${owner}/${repo}`);
+        if(stackResponse.ok) {
+            stack = await stackResponse.json();
+        }
+    } catch (error) {
+        console.warn(`Could not fetch stack info for ${owner}/${repo}.`);
+    }
+
 
     return {
         totalCommits,
         linesAdded,
         linesDeleted,
         commitsInLast48Hours: Array.isArray(recentCommits) ? recentCommits.length : 0,
-        contributors
+        contributors,
+        stack
     }
 }

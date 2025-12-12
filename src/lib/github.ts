@@ -61,6 +61,7 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
 
     const forks: Fork[] = await Promise.all(forksData.slice(0, 10).map(async (forkData: any): Promise<Fork> => {
         try {
+            // First, try to get commits ahead of parent
             const compareData = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/compare/${repoDetails.default_branch}...${forkData.default_branch}`, token);
             return {
                 id: forkData.id,
@@ -70,13 +71,41 @@ export const getRepoData = async (repoUrl: string, token?: string | null): Promi
                 commitCount: compareData.ahead_by,
             };
         } catch (error) {
-            console.warn(`Could not compare fork ${forkData.full_name}. Setting commit count to 0.`);
-            return {
-                id: forkData.id,
-                name: forkData.name,
-                fullName: forkData.full_name,
-                url: forkData.html_url,
-                commitCount: 0,
+            console.warn(`Could not compare fork ${forkData.full_name}. Falling back to total commit count.`);
+            try {
+                // Fallback: get total commits on the fork's default branch
+                const forkRepoDetails = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}`, token);
+                const commitsData = await githubFetch(`/repos/${forkData.owner.login}/${forkData.name}/commits?sha=${forkRepoDetails.default_branch}&per_page=1`, token);
+                // The total commit count is in the Link header.
+                const linkHeader = commitsData.headers?.get('Link');
+                if (linkHeader) {
+                    const match = linkHeader.match(/&page=(\d+)>; rel="last"/);
+                    if (match) {
+                        return {
+                           id: forkData.id,
+                            name: forkData.name,
+                            fullName: forkData.full_name,
+                            url: forkData.html_url,
+                            commitCount: parseInt(match[1], 10),
+                        };
+                    }
+                }
+                 return {
+                    id: forkData.id,
+                    name: forkData.name,
+                    fullName: forkData.full_name,
+                    url: forkData.html_url,
+                    commitCount: 1, 
+                };
+            } catch (fallbackError) {
+                 console.error(`Could not fetch commit count for ${forkData.full_name}. Setting commit count to 0.`);
+                 return {
+                    id: forkData.id,
+                    name: forkData.name,
+                    fullName: forkData.full_name,
+                    url: forkData.html_url,
+                    commitCount: 0,
+                };
             }
         }
     }));

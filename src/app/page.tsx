@@ -64,10 +64,9 @@ export default function Home() {
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        const formData = new FormData(event.currentTarget);
         
         startTransition(async () => {
-            const result = await analyzeRepo(formData);
+            const result = await analyzeRepo(url, token);
             setState(result);
             if (result.error) {
                  toast({

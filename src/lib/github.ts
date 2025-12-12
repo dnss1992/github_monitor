@@ -1,4 +1,3 @@
-import 'server-only';
 import type { RepoData, Fork, Committer, RepoDetails, ContributorStat } from '@/lib/types';
 
 const GITHUB_API_URL = 'https://api.github.com';

@@ -1,4 +1,3 @@
-'use server';
 
 import { getRepoData, getRepoDetails } from '@/lib/github';
 import type { RepoData, RepoDetails } from '@/lib/types';
@@ -18,15 +17,12 @@ const urlSchema = z.string().url({ message: "Please enter a valid URL." }).refin
     }
 );
 
-type FormState = {
+type AnalyzeRepoState = {
     data: RepoData | null,
     error: string | null
 }
 
-export async function analyzeRepo(formData: FormData): Promise<FormState> {
-    const url = formData.get('url') as string;
-    const token = formData.get('token') as string | null;
-
+export async function analyzeRepo(url: string, token: string | null): Promise<AnalyzeRepoState> {
     const validatedUrl = urlSchema.safeParse(url);
 
     if (!validatedUrl.success) {

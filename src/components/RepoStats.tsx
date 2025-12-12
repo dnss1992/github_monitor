@@ -30,7 +30,7 @@ export function RepoStats({ data }: { data: RepoData }) {
                         <li key={committer.name} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-3">
                                 <Avatar className="h-9 w-9 border-2 border-primary/20">
-                                    <AvatarImage src={`https://picsum.photos/seed/${committer.name.replace(/\s/g, '')}/40/40`} alt={committer.name} data-ai-hint="person portrait" />
+                                    <AvatarImage src={committer.avatarUrl} alt={committer.name} data-ai-hint="person portrait" />
                                     <AvatarFallback>{committer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                                 </Avatar>
                                 <span className="font-medium">{committer.name}</span>

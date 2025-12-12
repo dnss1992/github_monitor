@@ -1,6 +1,6 @@
 "use server";
 
-import { getMockRepoData } from '@/lib/mock-data';
+import { getRepoData } from '@/lib/github';
 import type { RepoData } from '@/lib/types';
 import { z } from 'zod';
 
@@ -33,7 +33,7 @@ export async function analyzeRepo(prevState: FormState, formData: FormData): Pro
     }
 
     try {
-        const data = await getMockRepoData(validatedUrl.data);
+        const data = await getRepoData(validatedUrl.data);
         return { data, error: null };
     } catch (error: any) {
         return { data: null, error: error.message || "Failed to fetch repository data." };

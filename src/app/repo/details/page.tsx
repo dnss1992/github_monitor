@@ -12,7 +12,6 @@ import { ContributorsTable } from '@/components/ContributorsTable';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { CommitActivityChart } from '@/components/CommitActivityChart';
-import { CommitAnalysis } from '@/components/CommitAnalysis';
 import { RepoAnalysisPrompt } from '@/components/RepoAnalysisPrompt';
 
 
@@ -126,7 +125,6 @@ function RepoDashboardContent() {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2 space-y-8">
                                 <ContributorsTable contributors={details.contributors} />
-                                <CommitAnalysis owner={owner} repo={repo} token={token} ollamaUrl={ollamaUrl} />
                                 <RepoAnalysisPrompt repoUrl={repoUrl} />
                             </div>
                             <div className="lg:col-span-1">

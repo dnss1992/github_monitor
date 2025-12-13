@@ -27,7 +27,6 @@ function RepoDashboardContent() {
     const owner = searchParams.get('owner');
     const repo = searchParams.get('repo');
     const token = searchParams.get('token');
-    const ollamaUrl = searchParams.get('ollamaUrl');
 
     useEffect(() => {
         if (owner && repo) {
@@ -45,9 +44,11 @@ function RepoDashboardContent() {
                 }
             });
         }
-        
-        const savedUrl = sessionStorage.getItem('repoUrl');
+    }, [owner, repo, token, toast]);
+
+    useEffect(() => {
         const backParams = new URLSearchParams();
+        const savedUrl = sessionStorage.getItem('repoUrl');
         if (savedUrl) {
             backParams.set('url', savedUrl);
         }
@@ -56,14 +57,8 @@ function RepoDashboardContent() {
         if (savedToken) {
             backParams.set('token', savedToken);
         }
-
-        const savedOllamaUrl = sessionStorage.getItem('ollamaUrl');
-        if (savedOllamaUrl) {
-            backParams.set('ollamaUrl', savedOllamaUrl);
-        }
         setBackLink(`/?${backParams.toString()}`);
-
-    }, [owner, repo, token, ollamaUrl, toast]);
+    }, []);
 
     if (!owner || !repo) {
          return (

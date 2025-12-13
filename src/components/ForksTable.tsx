@@ -10,7 +10,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
-import { GitCommitHorizontal, Search, ChevronRight, Download, Loader2 } from "lucide-react"
+import { Search, ChevronRight, Download, Loader2 } from "lucide-react"
 import type { Fork } from "@/lib/types"
 import { Card } from "./ui/card"
 import { useRouter } from "next/navigation"
@@ -19,7 +19,7 @@ import { getForkDetails } from "@/lib/github";
 import { useToast } from "@/hooks/use-toast";
 
 
-export function ForksTable({ forks, token, ollamaUrl }: { forks: Fork[], token?: string | null, ollamaUrl?: string | null }) {
+export function ForksTable({ forks, token }: { forks: Fork[], token?: string | null }) {
     const [filter, setFilter] = useState('');
     const [isExporting, startExportTransition] = useTransition();
     const router = useRouter();
@@ -42,9 +42,6 @@ export function ForksTable({ forks, token, ollamaUrl }: { forks: Fork[], token?:
         params.set('repo', repo);
         if (token) {
             params.set('token', token);
-        }
-        if (ollamaUrl) {
-            params.set('ollamaUrl', ollamaUrl);
         }
         router.push(`/repo/details?${params.toString()}`);
     }

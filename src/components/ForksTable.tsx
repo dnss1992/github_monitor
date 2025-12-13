@@ -19,7 +19,7 @@ import { getForkDetails } from "@/lib/github";
 import { useToast } from "@/hooks/use-toast";
 
 
-export function ForksTable({ forks, token }: { forks: Fork[], token?: string | null }) {
+export function ForksTable({ forks, token, ollamaUrl }: { forks: Fork[], token?: string | null, ollamaUrl?: string | null }) {
     const [filter, setFilter] = useState('');
     const [isExporting, startExportTransition] = useTransition();
     const router = useRouter();
@@ -42,6 +42,9 @@ export function ForksTable({ forks, token }: { forks: Fork[], token?: string | n
         params.set('repo', repo);
         if (token) {
             params.set('token', token);
+        }
+        if (ollamaUrl) {
+            params.set('ollamaUrl', ollamaUrl);
         }
         router.push(`/repo/details?${params.toString()}`);
     }

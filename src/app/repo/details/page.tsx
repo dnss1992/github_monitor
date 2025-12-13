@@ -25,6 +25,7 @@ function RepoDashboardContent() {
     const owner = searchParams.get('owner');
     const repo = searchParams.get('repo');
     const token = searchParams.get('token');
+    const ollamaUrl = searchParams.get('ollamaUrl');
 
     useEffect(() => {
         if (owner && repo) {
@@ -57,7 +58,11 @@ function RepoDashboardContent() {
     }
 
     const repoUrl = `https://github.com/${owner}/${repo}`;
-    const backLink = token ? `/?token=${encodeURIComponent(token)}` : '/';
+    
+    const backParams = new URLSearchParams();
+    if (token) backParams.set('token', token);
+    if (ollamaUrl) backParams.set('ollamaUrl', ollamaUrl);
+    const backLink = `/?${backParams.toString()}`;
 
 
     return (

@@ -8,7 +8,7 @@ import type { RepoData } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, KeyRound } from 'lucide-react';
+import { Loader2, Search, KeyRound, Server } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { RepoStats } from '@/components/RepoStats';
 import { ForksTable } from '@/components/ForksTable';
@@ -38,15 +38,20 @@ export default function Home() {
     const { toast } = useToast();
     const [url, setUrl] = useState('');
     const [token, setToken] = useState('');
+    const [ollamaUrl, setOllamaUrl] = useState('');
     
     useEffect(() => {
         const savedUrl = sessionStorage.getItem('repoUrl');
         const savedToken = sessionStorage.getItem('githubToken');
+        const savedOllamaUrl = sessionStorage.getItem('ollamaUrl');
         if (savedUrl) {
             setUrl(savedUrl);
         }
         if (savedToken) {
             setToken(savedToken);
+        }
+        if (savedOllamaUrl) {
+            setOllamaUrl(savedOllamaUrl);
         }
     }, []);
 
@@ -60,6 +65,12 @@ export default function Home() {
         const newToken = e.target.value;
         setToken(newToken);
         sessionStorage.setItem('githubToken', newToken);
+    };
+
+    const handleOllamaUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newOllamaUrl = e.target.value;
+        setOllamaUrl(newOllamaUrl);
+        sessionStorage.setItem('ollamaUrl', newOllamaUrl);
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -109,6 +120,17 @@ export default function Home() {
                                     className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
                                 />
                             </div>
+                            <div className="flex items-center gap-2 border-t pt-2">
+                                <Server className="h-4 w-4 text-muted-foreground ml-2"/>
+                                <Input
+                                    type="url"
+                                    name="ollamaUrl"
+                                    value={ollamaUrl}
+                                    onChange={handleOllamaUrlChange}
+                                    placeholder="Optional: Ollama URL (e.g., http://localhost:11434)"
+                                    className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                                />
+                            </div>
                         </div>
                     </form>
                 </section>
@@ -130,7 +152,7 @@ export default function Home() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                            <RepoStats data={state.data} />
                         </div>
-                        <ForksTable forks={state.data.forks} token={token} />
+                        <ForksTable forks={state.data.forks} token={token} ollamaUrl={ollamaUrl} />
                     </section>
                 )}
             </div>

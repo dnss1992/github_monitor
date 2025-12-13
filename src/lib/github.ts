@@ -238,3 +238,16 @@ export const getRepoDetails = async(owner: string, repo: string, token?: string 
         commitActivity
     }
 }
+
+export const getRepoCommits = async (owner: string, repo: string, token?: string | null): Promise<string[]> => {
+    try {
+        const { data: commitsData } = await githubFetch(`/repos/${owner}/${repo}/commits?per_page=50`, token);
+        if (Array.isArray(commitsData)) {
+            return commitsData.map(c => c.commit.message);
+        }
+        return [];
+    } catch (error) {
+        console.error("Failed to fetch commits:", error);
+        return [];
+    }
+};

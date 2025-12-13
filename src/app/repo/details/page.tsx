@@ -12,6 +12,7 @@ import { ContributorsTable } from '@/components/ContributorsTable';
 import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { CommitActivityChart } from '@/components/CommitActivityChart';
+import { CommitAnalysis } from '@/components/CommitAnalysis';
 
 
 function RepoDashboardContent() {
@@ -60,6 +61,9 @@ function RepoDashboardContent() {
     const repoUrl = `https://github.com/${owner}/${repo}`;
     
     const backParams = new URLSearchParams();
+    // Reconstruct the original search URL for the back button
+    const originalSearchUrl = sessionStorage.getItem('repoUrl');
+    if (originalSearchUrl) backParams.set('url', originalSearchUrl);
     if (token) backParams.set('token', token);
     if (ollamaUrl) backParams.set('ollamaUrl', ollamaUrl);
     const backLink = `/?${backParams.toString()}`;
@@ -109,8 +113,9 @@ function RepoDashboardContent() {
                     <div className="space-y-8 animate-in fade-in-50 duration-500">
                         <RepoDetailStats data={details} />
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="lg:col-span-2">
+                            <div className="lg:col-span-2 space-y-8">
                                 <ContributorsTable contributors={details.contributors} />
+                                <CommitAnalysis owner={owner} repo={repo} token={token} ollamaUrl={ollamaUrl} />
                             </div>
                             <div className="lg:col-span-1">
                                 <CommitActivityChart commitActivity={details.commitActivity} />

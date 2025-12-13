@@ -94,7 +94,8 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                 toast({
                     variant: 'destructive',
                     title: 'Analysis Failed',
-                    description: `Could not connect to Ollama at ${ollamaUrl}. Make sure the server is running, accessible, and has CORS configured if necessary. Error: ${error.message}`,
+                    description: `Could not connect to Ollama at ${ollamaUrl}. If Ollama is running, this is likely a CORS issue. Please configure Ollama to allow requests from this website. Error: ${error.message}`,
+                    duration: 9000,
                 });
             }
         });

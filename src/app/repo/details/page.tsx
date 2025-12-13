@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { CommitActivityChart } from '@/components/CommitActivityChart';
 import { CommitAnalysis } from '@/components/CommitAnalysis';
+import { RepoAnalysisPrompt } from '@/components/RepoAnalysisPrompt';
 
 
 function RepoDashboardContent() {
@@ -46,12 +47,21 @@ function RepoDashboardContent() {
             });
         }
         
-        // Construct the back link on the client side to safely access sessionStorage
+        const savedUrl = sessionStorage.getItem('repoUrl');
         const backParams = new URLSearchParams();
-        const originalSearchUrl = sessionStorage.getItem('repoUrl');
-        if (originalSearchUrl) backParams.set('url', originalSearchUrl);
-        if (token) backParams.set('token', token);
-        if (ollamaUrl) backParams.set('ollamaUrl', ollamaUrl);
+        if (savedUrl) {
+            backParams.set('url', savedUrl);
+        }
+        
+        const savedToken = sessionStorage.getItem('githubToken');
+        if (savedToken) {
+            backParams.set('token', savedToken);
+        }
+
+        const savedOllamaUrl = sessionStorage.getItem('ollamaUrl');
+        if (savedOllamaUrl) {
+            backParams.set('ollamaUrl', savedOllamaUrl);
+        }
         setBackLink(`/?${backParams.toString()}`);
 
     }, [owner, repo, token, ollamaUrl, toast]);
@@ -117,6 +127,7 @@ function RepoDashboardContent() {
                             <div className="lg:col-span-2 space-y-8">
                                 <ContributorsTable contributors={details.contributors} />
                                 <CommitAnalysis owner={owner} repo={repo} token={token} ollamaUrl={ollamaUrl} />
+                                <RepoAnalysisPrompt repoUrl={repoUrl} />
                             </div>
                             <div className="lg:col-span-1">
                                 <CommitActivityChart commitActivity={details.commitActivity} />

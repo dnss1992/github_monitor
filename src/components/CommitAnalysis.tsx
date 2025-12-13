@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getRepoCommits } from '@/lib/github';
-import { Ollama } from 'ollama';
 
 type CommitAnalysisProps = {
     owner: string;
@@ -48,7 +47,6 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                     return;
                 }
 
-                const ollama = new Ollama({ host: ollamaUrl });
                 const commitMessages = commits.map(c => `- ${c.slice(0, 100)}`).join('\n');
                 
                 const prompt = `
@@ -70,13 +68,25 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                     }
                 `;
 
-                const response = await ollama.generate({
-                    model: 'llama3', // a popular default, user can configure Ollama as needed
-                    prompt: prompt,
-                    format: 'json'
+                const response = await fetch(`${ollamaUrl}/api/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'llama3', // a popular default, user can configure Ollama as needed
+                        prompt: prompt,
+                        format: 'json',
+                        stream: false,
+                    }),
                 });
+
+                if (!response.ok) {
+                    throw new Error(`Ollama API request failed with status ${response.status}`);
+                }
                 
-                const analysisResult = JSON.parse(response.response);
+                const responseData = await response.json();
+                const analysisResult = JSON.parse(responseData.response);
                 setResult(analysisResult);
 
             } catch (error: any) {
@@ -84,7 +94,7 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                 toast({
                     variant: 'destructive',
                     title: 'Analysis Failed',
-                    description: `Could not connect to Ollama at ${ollamaUrl}. Make sure the server is running and accessible. Error: ${error.message}`,
+                    description: `Could not connect to Ollama at ${ollamaUrl}. Make sure the server is running, accessible, and has CORS configured if necessary. Error: ${error.message}`,
                 });
             }
         });
@@ -111,6 +121,7 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span>Analyzing... This may take a moment.</span>
                     </div>
+
                 )}
                
                 {result && (

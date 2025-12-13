@@ -97,7 +97,7 @@ Provide a comprehensive evaluation based on the following criteria. Present your
                 <div>
                     <h3 className="font-semibold text-foreground">Step 2: Analyze Repository Code</h3>
                      <p className="text-sm text-muted-foreground mt-1">
-                       Go to <a href="https://gitingest.com/" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-primary">gitingest.com<ExternalLink className="inline-block ml-1 h-3 w-3"/></a>, paste the repository URL, and copy the full code output. Then, paste this code into the same chat window used in Step 1 to get a combined analysis.
+                       Go to <a href="https://gitingest.com/" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-primary">gitingest.com<ExternalLink className="inline-block ml-1 h-3 w-3"/></a>, paste the auto-populated URL below, and copy the full code output. Then, paste this code into the same chat window used in Step 1 to get a combined analysis.
                     </p>
                     <div className="relative mt-2">
                         <Input

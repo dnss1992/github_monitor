@@ -1,11 +1,13 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2, Wand2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getRepoCommits } from '@/lib/github';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 
 type CommitAnalysisProps = {
     owner: string;
@@ -24,6 +26,14 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
     const [result, setResult] = useState<AnalysisResult | null>(null);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+    const [prompt, setPrompt] = useState('');
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(prompt);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
 
     const handleAnalyze = () => {
         if (!ollamaUrl) {
@@ -37,6 +47,9 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
 
         startTransition(async () => {
             try {
+                setResult(null);
+                setPrompt('');
+
                 const commits = await getRepoCommits(owner, repo, token);
                 if (commits.length === 0) {
                     toast({
@@ -49,7 +62,7 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
 
                 const commitMessages = commits.map(c => `- ${c.slice(0, 100)}`).join('\n');
                 
-                const prompt = `
+                const generatedPrompt = `
                     Analyze the following recent commit messages from a GitHub repository.
                     Provide a commit message quality score from 0-100.
                     A high score means messages are descriptive, varied, and follow good practices.
@@ -67,6 +80,8 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                         "recommendations": ["<string>", "<string>", "<string>"]
                     }
                 `;
+                
+                setPrompt(generatedPrompt);
 
                 const response = await fetch(`${ollamaUrl}/api/generate`, {
                     method: 'POST',
@@ -75,7 +90,7 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                     },
                     body: JSON.stringify({
                         model: 'llama3', // a popular default, user can configure Ollama as needed
-                        prompt: prompt,
+                        prompt: generatedPrompt,
                         format: 'json',
                         stream: false,
                     }),
@@ -110,14 +125,14 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {!result && (
+                {!result && !isPending && (
                      <Button onClick={handleAnalyze} disabled={isPending}>
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                        <Wand2 className="mr-2 h-4 w-4" />
                         Analyze Commits
                     </Button>
                 )}
 
-                {isPending && !result && (
+                {isPending && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-5 w-5 animate-spin" />
                         <span>Analyzing... This may take a moment.</span>
@@ -143,11 +158,33 @@ export function CommitAnalysis({ owner, repo, token, ollamaUrl }: CommitAnalysis
                                 ))}
                             </ul>
                         </div>
-                         <Button onClick={handleAnalyze} disabled={isPending} variant="secondary" size="sm">
+                         <Button onClick={handleAnalyze} disabled={isPending} variant="secondary" size="sm" className="mt-4">
                             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                             Re-analyze
                         </Button>
                     </div>
+                )}
+                {prompt && (
+                    <Accordion type="single" collapsible className="w-full mt-4">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>View Prompt</AccordionTrigger>
+                            <AccordionContent>
+                                <div className="relative bg-muted p-4 rounded-md">
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="absolute top-2 right-2 h-7 w-7"
+                                        onClick={handleCopy}
+                                    >
+                                        {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                    </Button>
+                                    <pre className="text-xs whitespace-pre-wrap font-mono">
+                                        <code>{prompt.trim()}</code>
+                                    </pre>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 )}
             </CardContent>
         </Card>

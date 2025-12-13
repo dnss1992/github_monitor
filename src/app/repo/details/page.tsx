@@ -22,6 +22,7 @@ function RepoDashboardContent() {
     const [details, setDetails] = useState<RepoDetails | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [backLink, setBackLink] = useState('/');
 
     const owner = searchParams.get('owner');
     const repo = searchParams.get('repo');
@@ -44,7 +45,16 @@ function RepoDashboardContent() {
                 }
             });
         }
-    }, [owner, repo, token, toast]);
+        
+        // Construct the back link on the client side to safely access sessionStorage
+        const backParams = new URLSearchParams();
+        const originalSearchUrl = sessionStorage.getItem('repoUrl');
+        if (originalSearchUrl) backParams.set('url', originalSearchUrl);
+        if (token) backParams.set('token', token);
+        if (ollamaUrl) backParams.set('ollamaUrl', ollamaUrl);
+        setBackLink(`/?${backParams.toString()}`);
+
+    }, [owner, repo, token, ollamaUrl, toast]);
 
     if (!owner || !repo) {
          return (
@@ -60,15 +70,6 @@ function RepoDashboardContent() {
 
     const repoUrl = `https://github.com/${owner}/${repo}`;
     
-    const backParams = new URLSearchParams();
-    // Reconstruct the original search URL for the back button
-    const originalSearchUrl = sessionStorage.getItem('repoUrl');
-    if (originalSearchUrl) backParams.set('url', originalSearchUrl);
-    if (token) backParams.set('token', token);
-    if (ollamaUrl) backParams.set('ollamaUrl', ollamaUrl);
-    const backLink = `/?${backParams.toString()}`;
-
-
     return (
         <main className="min-h-screen bg-background text-foreground">
             <div className="container mx-auto px-4 py-8 md:py-12">
